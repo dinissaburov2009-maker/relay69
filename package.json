@@ -1,1 +1,1 @@
-{ "name": "relay67", "private": true, "type": "module", "devDependencies": { "wrangler": "^4" } }
+{ "name": "relay69", "private": true, "type": "module", "scripts": { "test": "node --test" }, "devDependencies": { "wrangler": "^4" } }

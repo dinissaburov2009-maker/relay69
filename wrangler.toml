@@ -6,6 +6,20 @@ compatibility_date = "2025-10-01"
 name = "ROOMS"
 class_name = "Room"
 
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+# Та же база, что у pb-accounts: Hub проверяет токены игроков по таблицам sessions и accounts (только чтение)
+[[d1_databases]]
+binding = "DB"
+database_name = "pb-accounts"
+database_id = "41eddac2-9f37-4b6d-a872-636d13ed5424"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Hub"]
