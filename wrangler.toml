@@ -1,4 +1,4 @@
-name = "relay67"
+name = "relay69"
 main = "worker.js"
 compatibility_date = "2025-10-01"
 
