@@ -103,3 +103,16 @@ test('комната: три игрока, роли, gone с ролью, ухо�
   core.leave(g1); assert.match(h.got.at(-1), /"gone".*"guest"/);
   core.leave(h); assert.deepEqual(g2.closed, [1000, 'host_left']);
 });
+
+test('версии: разные версии игры не матчатся и не собираются в пати', () => {
+  clock += 100000;
+  const A = mk('AAAAAAAA', 'Alice', 1000), B = mk('BBBBBBBB', 'Bob', 1000), C = mk('CCCCCCCC', 'Carl', 1000);
+  const h = hub(A, B, C);
+  say(h, A, { t: 'hello', mmr: 1000, ver: 'v1' }); say(h, B, { t: 'hello', mmr: 1000, ver: 'v2' }); say(h, C, { t: 'hello', mmr: 1000, ver: 'v1' });
+  for (const p of [A, B]) say(h, p, { t: 'queue', mode: '1v1', mmr: 1000, ms: 20000 });
+  h.tick(); assert.equal(last(A, 'match'), undefined);
+  say(h, C, { t: 'queue', mode: '1v1', mmr: 1000, ms: 20000 });
+  h.tick(); assert.ok(last(A, 'match')); assert.ok(last(C, 'match')); assert.equal(last(B, 'match'), undefined);
+  say(h, A, { t: 'party_create' }); const code = last(A, 'party').code;
+  say(h, B, { t: 'party_join', code }); assert.equal(last(B, 'err').code, 'ver_mismatch');
+});

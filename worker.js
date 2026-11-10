@@ -106,7 +106,7 @@ export class Hub extends DurableObject {
     }
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ id, nick, mmr: 0, st: 'menu', party: '', lead: 0, pj: 0, rd: 0, q: null, rl: [0, 0], inv: 0 });
+    server.serializeAttachment({ id, nick, mmr: 0, ver: '', st: 'menu', party: '', lead: 0, pj: 0, rd: 0, q: null, rl: [0, 0], inv: 0 });
     server.send(JSON.stringify({ t: 'welcome', id, nick, online: this.ctx.getWebSockets().length }));
     return new Response(null, { status: 101, webSocket: client });
   }

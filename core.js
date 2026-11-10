@@ -54,7 +54,7 @@ const Q_MIN = 2000, Q_MAX = 20000, Q_DEF = 8000;
 const clampN = (v, a, b, d) => { v = Number(v); return Number.isFinite(v) ? Math.min(b, Math.max(a, Math.round(v))) : d; };
 
 // peers: [{ sock, a }], a — вложение сокета (переживает сон объекта):
-// { id, nick, mmr, st, party, lead, pj, rd, q: {mode, m, since, ms} | null, rl: [start, count], inv }
+// { id, nick, mmr, ver, st, party, lead, pj, rd, q: {mode, m, since, ms} | null, rl: [start, count], inv }
 export class HubCore {
   constructor(peers = [], now = Date.now) { this.peers = peers; this.now = now; }
   send(p, o) { tx(p.sock, JSON.stringify(o)); }
@@ -97,7 +97,7 @@ export class HubCore {
     if (!p.a.rl || now - p.a.rl[0] > 5000) p.a.rl = [now, 0];
     if (++p.a.rl[1] > 25) return; // не больше 25 сообщений за 5 секунд
     switch (m.t) {
-      case 'hello': p.a.mmr = clampN(m.mmr, 0, 100000, p.a.mmr); this.save(p); this.send(p, { t: 'online', n: this.peers.length }); if (p.a.party) this.pushParty(p.a.party); break;
+      case 'hello': p.a.mmr = clampN(m.mmr, 0, 100000, p.a.mmr); if (typeof m.ver === 'string') p.a.ver = m.ver.slice(0, 40); this.save(p); this.send(p, { t: 'online', n: this.peers.length }); if (p.a.party) this.pushParty(p.a.party); break;
       case 'st': if (STATES.has(m.st)) { p.a.st = m.st; if (m.st !== 'search') p.a.q = null; this.save(p); if (p.a.party) this.pushParty(p.a.party); } break;
       case 'who': {
         const list = this.peers.filter((x) => x !== p).sort((x, y) => Math.abs(x.a.mmr - p.a.mmr) - Math.abs(y.a.mmr - p.a.mmr)).slice(0, 30)
@@ -111,6 +111,7 @@ export class HubCore {
         if (!ms.length) return this.err(p, 'no_party');
         if (p.a.party === code) return this.pushParty(code);
         if (ms.length >= PARTY_MAX) return this.err(p, 'party_full');
+        if (ms.some((x) => x.a.ver && p.a.ver && x.a.ver !== p.a.ver)) return this.err(p, 'ver_mismatch');
         this.joinParty(p, code, false); break;
       }
       case 'party_leave': this.leaveParty(p); break;
@@ -143,6 +144,7 @@ export class HubCore {
         if (ms.length > MODES[mode].max) return this.err(p, 'too_many');
         if (ms.some((x) => !x.a.lead && !x.a.rd)) return this.err(p, 'not_ready');
         if (ms.some((x) => x.a.st === 'battle')) return this.err(p, 'busy');
+        if (ms.some((x) => x.a.ver !== p.a.ver)) return this.err(p, 'ver_mismatch');
         const room = rnd(8), roles = ['host', 'guest', 'guest2'];
         const list = ms.map((x, i) => ({ id: x.a.id, nick: x.a.nick, mmr: x.a.mmr, seat: i, role: roles[i] }));
         ms.forEach((x, i) => { x.a.st = 'battle'; x.a.rd = 0; x.a.q = null; this.save(x); this.send(x, { t: 'go', mode, room, seat: i, role: roles[i], members: list }); });
@@ -170,7 +172,7 @@ export class HubCore {
       if (used.has(A)) continue;
       let best = null, bd = Infinity;
       for (const B of qs) {
-        if (B === A || used.has(B) || B.a.q.mode !== A.a.q.mode) continue;
+        if (B === A || used.has(B) || B.a.q.mode !== A.a.q.mode || B.a.ver !== A.a.ver) continue; // играют только на одной версии игры
         const d = Math.abs(A.a.q.m - B.a.q.m);
         if (d <= Math.max(win(A.a.q), win(B.a.q)) && d < bd) { best = B; bd = d; }
       }
